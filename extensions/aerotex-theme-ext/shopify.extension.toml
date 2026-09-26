@@ -1,0 +1,6 @@
+name = "Aerotex Widgets Theme App"
+type = "theme"
+uid = "bfab0932-8427-777b-0b04-1882ab10498827f4a75b"
+
+[build]
+path = "."

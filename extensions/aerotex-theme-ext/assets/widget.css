@@ -1,0 +1,73 @@
+/* Aerotex Widgets Theme CSS */
+
+.aerotex-floating-widget {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2147483647; /* Maximum z-index to stay on top */
+  padding: 12px;
+}
+
+.aerotex-floating-widget.bottom-right {
+  bottom: 24px;
+  right: 24px;
+}
+
+.aerotex-floating-widget.bottom-left {
+  bottom: 24px;
+  left: 24px;
+}
+
+.aerotex-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+}
+
+.aerotex-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.aerotex-icon:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Animations */
+@keyframes floating {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.aerotex-floating-widget.floating-anim {
+  animation: floating 3s ease-in-out infinite;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+  .aerotex-floating-widget {
+    flex-direction: row;
+    bottom: 16px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 30px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+  
+  .aerotex-floating-widget.floating-anim {
+    animation: none; /* Disable floating on mobile */
+  }
+}

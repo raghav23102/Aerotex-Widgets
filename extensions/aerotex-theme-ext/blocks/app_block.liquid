@@ -1,0 +1,26 @@
+{% schema %}
+{
+  "name": "Aerotex Widget",
+  "target": "section",
+  "javascript": "widget.js",
+  "stylesheet": "widget.css",
+  "settings": [
+    {
+      "type": "text",
+      "id": "widget_id",
+      "label": "Widget ID",
+      "info": "Paste the Widget ID from the Aerotex Widgets App. Example: aerotex-widget-8F42K"
+    }
+  ]
+}
+{% endschema %}
+
+<!-- Aerotex Widgets App Block -->
+<div class="aerotex-widget-block" data-widget-id="{{ block.settings.widget_id }}" data-shop="{{ shop.permanent_domain }}">
+  {% if block.settings.widget_id == blank %}
+    <div style="padding: 20px; border: 2px dashed #ccc; text-align: center; border-radius: 8px;">
+      <p style="margin: 0;"><strong>Aerotex Widget</strong></p>
+      <p style="margin: 5px 0 0; font-size: 14px; color: #666;">Please paste your Widget ID in the block settings to render the widget.</p>
+    </div>
+  {% endif %}
+</div>

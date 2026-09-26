@@ -32,3 +32,53 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+model Store {
+  id                 String   @id @default(uuid())
+  shop               String   @unique
+  plan               String   @default("FREE")
+  subscriptionId     String?
+  subscriptionStatus String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  widgets            Widget[]
+}
+
+model Widget {
+  id              String         @id @default(uuid())
+  shop            String
+  store           Store          @relation(fields: [shop], references: [shop])
+  widgetId        String         @unique
+  name            String
+  type            String
+  design          String
+  status          String         @default("Active")
+  settings        String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  socialLinks     SocialLink[]
+  integrations    Integration[]
+}
+
+model SocialLink {
+  id           String   @id @default(uuid())
+  widgetId     String
+  widget       Widget   @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
+  platform     String
+  url          String
+  enabled      Boolean  @default(true)
+  displayOrder Int
+}
+
+model Integration {
+  id              String   @id @default(uuid())
+  shop            String
+  widgetId        String
+  widget          Widget   @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
+  integrationType String
+  targetSelector  String?
+  status          String   @default("Active")
+  settings        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
