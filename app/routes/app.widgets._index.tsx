@@ -24,7 +24,29 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return { widgets };
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    currentPlan = "Free";
+  }
+
+  const maxWidgetsMap: Record<string, number> = {
+    "Free": 1,
+    "Starter Plan": 4,
+    "Pro Plan": 10,
+    "Premium Plan": Infinity
+  };
+  const maxWidgets = maxWidgetsMap[currentPlan] ?? 1;
+  const limitReached = widgets.length >= maxWidgets;
+
+  return { widgets, limitReached };
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -42,7 +64,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Widgets() {
-  const { widgets } = useLoaderData<typeof loader>();
+  const { widgets, limitReached } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const submit = useSubmit();
 
@@ -54,7 +76,7 @@ export default function Widgets() {
   const emptyStateMarkup = (
     <EmptyState
       heading="No widgets yet"
-      action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new") }}
+      action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new"), disabled: limitReached }}
       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
     >
       <p>Create your first Aerotex Widget and add it to your Shopify store.</p>
@@ -101,8 +123,8 @@ export default function Widgets() {
   return (
     <Page>
       <TitleBar title="Widgets">
-        <button variant="primary" onClick={() => navigate("/app/widgets/new")}>
-          Create Widget
+        <button variant="primary" onClick={() => navigate(limitReached ? "/app/billing" : "/app/widgets/new")}>
+          {limitReached ? "Upgrade to Create More" : "Create Widget"}
         </button>
       </TitleBar>
       <Card padding="0">
@@ -112,8 +134,8 @@ export default function Widgets() {
           <>
             <Box padding="400" borderBlockEndWidth="025" borderColor="border">
               <InlineStack align="end">
-                <Button variant="primary" onClick={() => navigate("/app/widgets/new")}>
-                  + Create Widget
+                <Button variant="primary" onClick={() => navigate("/app/widgets/new")} disabled={limitReached}>
+                  {limitReached ? "Plan Limit Reached" : "+ Create Widget"}
                 </Button>
               </InlineStack>
             </Box>

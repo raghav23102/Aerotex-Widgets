@@ -22,9 +22,36 @@ import prisma from "../db.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, billing } = await authenticate.admin(request);
+  
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    currentPlan = "Free";
+  }
+
   const isNew = params.id === "new";
 
   if (isNew) {
+    const maxWidgetsMap: Record<string, number> = {
+      "Free": 1,
+      "Starter Plan": 4,
+      "Pro Plan": 10,
+      "Premium Plan": Infinity
+    };
+    const maxWidgets = maxWidgetsMap[currentPlan] ?? 1;
+    const currentWidgetCount = await prisma.widget.count({ where: { shop: session.shop } });
+
+    if (currentWidgetCount >= maxWidgets) {
+      return redirect("/app/billing");
+    }
+
     // Ensure store exists
     let store = await prisma.store.findUnique({ where: { shop: session.shop } });
     if (!store) {
@@ -53,19 +80,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     // Redirect to the actual edit page for this new widget
     return redirect(`/app/widgets/${newWidget.id}`);
-  }
-
-  let currentPlan = "Free";
-  try {
-    const billingCheck = await billing.check({
-      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
-      isTest: true,
-    });
-    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
-      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
-    }
-  } catch (e) {
-    currentPlan = "Free";
   }
 
   const widget = await prisma.widget.findUnique({

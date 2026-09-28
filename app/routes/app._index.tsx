@@ -47,22 +47,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     currentPlan = "Free";
   }
 
+  const maxWidgetsMap: Record<string, number> = {
+    "Free": 1,
+    "Starter Plan": 4,
+    "Pro Plan": 10,
+    "Premium Plan": Infinity
+  };
+  const maxWidgets = maxWidgetsMap[currentPlan] ?? 1;
+  const limitReached = widgetsCount >= maxWidgets;
+
   return {
     stats: { totalWidgets: widgetsCount, publishedWidgets },
     billing: { plan: currentPlan, status: "Active" },
     recentWidgets,
+    limitReached,
   };
 };
 
 export default function Dashboard() {
-  const { stats, billing, recentWidgets } = useLoaderData<typeof loader>();
+  const { stats, billing, recentWidgets, limitReached } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   return (
     <Page>
       <TitleBar title="Aerotex Widgets Dashboard">
-        <button variant="primary" onClick={() => navigate("/app/widgets/new")}>
-          Create New Widget
+        <button variant="primary" onClick={() => navigate(limitReached ? "/app/billing" : "/app/widgets/new")}>
+          {limitReached ? "Upgrade to Create More" : "Create New Widget"}
         </button>
       </TitleBar>
 
@@ -112,7 +122,7 @@ export default function Dashboard() {
               {recentWidgets.length === 0 ? (
                 <EmptyState
                   heading="No widgets yet"
-                  action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new") }}
+                  action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new"), disabled: limitReached }}
                   image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
                 >
                   <p>Create your first widget to see it here.</p>
@@ -174,9 +184,10 @@ export default function Dashboard() {
                     textAlign="left"
                     fullWidth
                     icon={PlusIcon}
-                    onClick={() => navigate("/app/widgets/new")}
+                    onClick={() => navigate(limitReached ? "/app/billing" : "/app/widgets/new")}
+                    disabled={limitReached}
                   >
-                    Create Widget
+                    {limitReached ? "Plan Limit Reached" : "Create Widget"}
                   </Button>
                   <Button
                     textAlign="left"
