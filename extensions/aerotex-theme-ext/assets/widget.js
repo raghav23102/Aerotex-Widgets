@@ -71,13 +71,30 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       widgetHtml.style.bottom = '20px'; widgetHtml.style.right = '20px';
     }
 
-    const links = (widgetData.socialLinks || []).sort((a, b) => a.displayOrder - b.displayOrder);
+    let parsedSettings = {};
+    try {
+      parsedSettings = JSON.parse(widgetData.settings || '{}');
+    } catch (e) {
+      console.error("Aerotex Widget settings parse error", e);
+    }
 
-    if (links.length === 0 && window.Shopify && window.Shopify.designMode) {
+    const socialLinks = parsedSettings.socialLinks || {};
+    const contactLinks = parsedSettings.contactLinks || {};
+    
+    // Combine social and contact links depending on the widget type or just merge them
+    // Contact widgets might have 'contactLinks' filled, Social widgets might have 'socialLinks'
+    const isContact = widgetData.type === 'Contact Widget';
+    const activeObj = isContact ? contactLinks : socialLinks;
+    
+    const activeLinks = Object.entries(activeObj)
+      .filter(([key, url]) => url && url.trim() !== '')
+      .map(([platform, url]) => ({ platform, url, enabled: true }));
+
+    if (activeLinks.length === 0 && window.Shopify && window.Shopify.designMode) {
       widgetHtml.innerHTML = `<div style="font-size:12px;color:#666;">No active links</div>`;
     }
 
-    links.forEach(link => {
+    activeLinks.forEach(link => {
       if (!link.enabled) return;
       let key = link.platform;
       if (!ICONS[key]) return;
