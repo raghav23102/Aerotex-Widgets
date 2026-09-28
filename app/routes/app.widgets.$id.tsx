@@ -411,11 +411,28 @@ export default function WidgetEditor() {
                         transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                       }}>
                         {activeLinks.length > 0 ? (
-                          activeLinks.map(([key, _]) => (
-                            <div key={key} style={{ transition: 'transform 0.2s', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'} onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                              {renderSocialIcon(key)}
-                            </div>
-                          ))
+                          activeLinks.map(([key, value]) => {
+                            // Ensure the link has http:// or https:// or mailto: / tel:
+                            let href = value;
+                            if (key === 'email' && !href.startsWith('mailto:')) href = `mailto:${href}`;
+                            else if (key === 'phone' && !href.startsWith('tel:')) href = `tel:${href}`;
+                            else if (key === 'whatsapp' && !href.startsWith('https://')) href = `https://wa.me/${href.replace(/[^0-9]/g, '')}`;
+                            else if (!href.startsWith('http') && key !== 'email' && key !== 'phone' && key !== 'whatsapp') href = `https://${href}`;
+                            
+                            return (
+                              <a 
+                                key={key} 
+                                href={href || "#"}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ transition: 'transform 0.2s', cursor: 'pointer', display: 'block' }} 
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'} 
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                              >
+                                {renderSocialIcon(key)}
+                              </a>
+                            );
+                          })
                         ) : (
                           <Text as="p" variant="bodySm" color="subdued">Fill out links to preview.</Text>
                         )}

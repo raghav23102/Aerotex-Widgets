@@ -1,5 +1,5 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useNavigate } from "@remix-run/react";
+import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { useLoaderData, useNavigate, useSubmit } from "@remix-run/react";
 import {
   Page,
   Card,
@@ -9,6 +9,7 @@ import {
   Badge,
   Button,
   EmptyState,
+  InlineStack,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -25,9 +26,24 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return { widgets };
 };
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const _action = formData.get("_action") as string;
+  const id = formData.get("id") as string;
+
+  if (_action === "delete" && id) {
+    await prisma.widget.delete({
+      where: { id, shop: session.shop },
+    });
+  }
+  return null;
+};
+
 export default function Widgets() {
   const { widgets } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const submit = useSubmit();
 
   const resourceName = {
     singular: "widget",
@@ -50,8 +66,15 @@ export default function Widgets() {
     </EmptyState>
   );
 
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this widget?")) {
+      submit({ _action: "delete", id }, { method: "post" });
+    }
+  };
+
   const rowMarkup = widgets.map(
-    ({ id, widgetId, name, type, design, status, createdAt, updatedAt }, index) => (
+    ({ id, widgetId, name, type, design, status }, index) => (
       <IndexTable.Row
         id={id}
         key={id}
@@ -75,7 +98,10 @@ export default function Widgets() {
           <Badge tone={status === "Active" ? "success" : "new"}>{status}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
-          <Button size="micro" onClick={() => navigate(`/app/widgets/${id}`)}>Edit</Button>
+          <InlineStack gap="200" wrap={false}>
+             <Button size="micro" onClick={(e) => { e.stopPropagation(); navigate(`/app/widgets/${id}`); }}>Edit</Button>
+             <Button size="micro" tone="critical" onClick={(e) => handleDelete(id, e)}>Delete</Button>
+          </InlineStack>
         </IndexTable.Cell>
       </IndexTable.Row>
     ),
