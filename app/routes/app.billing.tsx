@@ -13,7 +13,11 @@ import {
   Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate, MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM } from "../shopify.server";
+import { authenticate } from "../shopify.server";
+
+export const MONTHLY_PLAN_STARTER = "Starter Plan";
+export const MONTHLY_PLAN_PRO = "Pro Plan";
+export const MONTHLY_PLAN_PREMIUM = "Premium Plan";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
