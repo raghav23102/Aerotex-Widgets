@@ -173,11 +173,12 @@ export default function WidgetEditor() {
 
   const currentLevel = getPlanLevel(currentPlan);
 
-  const designOptions = ALL_DESIGNS.map(d => ({
-    label: d.name + (getPlanLevel(d.plan) > currentLevel ? ` (Locked - ${d.plan.replace(' Plan','')})` : ''),
-    value: d.name,
-    disabled: getPlanLevel(d.plan) > currentLevel
-  }));
+  const designOptions = ALL_DESIGNS
+    .filter(d => getPlanLevel(d.plan) <= currentLevel)
+    .map(d => ({
+      label: d.name,
+      value: d.name,
+    }));
   
   const handleTabChange = useCallback(
     (selectedTabIndex: number) => setSelectedTab(selectedTabIndex),
