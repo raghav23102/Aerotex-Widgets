@@ -24,6 +24,37 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { session, billing } = await authenticate.admin(request);
   const isNew = params.id === "new";
 
+  if (isNew) {
+    // Ensure store exists
+    let store = await prisma.store.findUnique({ where: { shop: session.shop } });
+    if (!store) {
+      store = await prisma.store.create({ data: { shop: session.shop } });
+    }
+
+    // Auto-create a Draft widget instantly so the ID exists in the DB
+    const newWidget = await prisma.widget.create({
+      data: {
+        shop: session.shop,
+        widgetId: `aerotex-widget-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
+        name: "My Widget",
+        type: "Social Media",
+        design: "Modern Floating Icons",
+        status: "Draft",
+        settings: JSON.stringify({
+          iconSize: "Medium",
+          spacing: "Normal",
+          backgroundColor: "#ffffff",
+          position: "Bottom Right",
+          socialLinks: {},
+          contactLinks: {}
+        }),
+      },
+    });
+
+    // Redirect to the actual edit page for this new widget
+    return redirect(`/app/widgets/${newWidget.id}`);
+  }
+
   const billingCheck = await billing.check({
     plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
     isTest: true,
@@ -33,56 +64,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     ? billingCheck.appSubscriptions[0].name 
     : "Free";
 
-  let widget;
-
-  if (isNew) {
-    widget = {
-      id: "new",
-      widgetId: `aerotex-widget-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
-      name: "",
-      type: "Social Media",
-      design: "Modern Floating Icons",
-      status: "Draft",
-      settings: JSON.stringify({
-        iconSize: "Medium",
-        spacing: "Normal",
-        backgroundColor: "#ffffff",
-        position: "Bottom Right",
-        socialLinks: {
-          facebook: "",
-          twitter: "",
-          instagram: "",
-          youtube: "",
-          tiktok: "",
-          pinterest: "",
-          linkedin: ""
-        },
-        contactLinks: {
-          whatsapp: "",
-          phone: "",
-          email: "",
-          messenger: "",
-          instagram: "",
-          linkedin: "",
-          location: ""
-        }
-      })
-    };
-  } else {
-    widget = await prisma.widget.findUnique({
-      where: { id: params.id, shop: session.shop },
-    });
-    
-    if (!widget) {
-      return redirect("/app/widgets");
-    }
-    const parsedSettings = JSON.parse(widget.settings);
-    if (!parsedSettings.socialLinks) parsedSettings.socialLinks = {};
-    if (!parsedSettings.contactLinks) parsedSettings.contactLinks = {};
-    widget.settings = JSON.stringify(parsedSettings);
+  const widget = await prisma.widget.findUnique({
+    where: { id: params.id, shop: session.shop },
+  });
+  
+  if (!widget) {
+    return redirect("/app/widgets");
   }
+  const parsedSettings = JSON.parse(widget.settings);
+  if (!parsedSettings.socialLinks) parsedSettings.socialLinks = {};
+  if (!parsedSettings.contactLinks) parsedSettings.contactLinks = {};
+  widget.settings = JSON.stringify(parsedSettings);
 
-  return { isNew, widget, currentPlan };
+  return { isNew: false, widget, currentPlan };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -92,11 +86,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const _action = formData.get("_action") as string;
 
   if (_action === "delete") {
-    if (params.id !== "new") {
-      await prisma.widget.delete({
-        where: { id: params.id, shop: session.shop },
-      });
-    }
+    await prisma.widget.delete({
+      where: { id: params.id, shop: session.shop },
+    });
     return redirect("/app/widgets");
   }
 
@@ -104,36 +96,16 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const type = formData.get("type") as string;
   const design = formData.get("design") as string;
   const settings = formData.get("settings") as string;
-  const widgetId = formData.get("widgetId") as string;
 
-  let store = await prisma.store.findUnique({ where: { shop: session.shop } });
-  if (!store) {
-     store = await prisma.store.create({ data: { shop: session.shop } });
-  }
-
-  if (params.id === "new") {
-    await prisma.widget.create({
-      data: {
-        shop: session.shop,
-        widgetId,
-        name,
-        type,
-        design,
-        settings,
-        status: "Draft",
-      },
-    });
-  } else {
-    await prisma.widget.update({
-      where: { id: params.id, shop: session.shop },
-      data: {
-        name,
-        type,
-        design,
-        settings,
-      },
-    });
-  }
+  await prisma.widget.update({
+    where: { id: params.id, shop: session.shop },
+    data: {
+      name,
+      type,
+      design,
+      settings,
+    },
+  });
 
   return redirect("/app/widgets");
 };

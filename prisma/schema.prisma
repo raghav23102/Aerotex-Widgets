@@ -1,13 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
-// enough when changing adapters.
-// See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -45,40 +39,40 @@ model Store {
 }
 
 model Widget {
-  id              String         @id @default(uuid())
-  shop            String
-  store           Store          @relation(fields: [shop], references: [shop])
-  widgetId        String         @unique
-  name            String
-  type            String
-  design          String
-  status          String         @default("Active")
-  settings        String
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  socialLinks     SocialLink[]
-  integrations    Integration[]
+  id           String        @id @default(uuid())
+  shop         String
+  widgetId     String        @unique
+  name         String
+  type         String
+  design       String
+  status       String        @default("Active")
+  settings     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  integrations Integration[]
+  socialLinks  SocialLink[]
+  store        Store         @relation(fields: [shop], references: [shop])
 }
 
 model SocialLink {
-  id           String   @id @default(uuid())
+  id           String  @id @default(uuid())
   widgetId     String
-  widget       Widget   @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
   platform     String
   url          String
-  enabled      Boolean  @default(true)
+  enabled      Boolean @default(true)
   displayOrder Int
+  widget       Widget  @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
 }
 
 model Integration {
   id              String   @id @default(uuid())
   shop            String
   widgetId        String
-  widget          Widget   @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
   integrationType String
   targetSelector  String?
   status          String   @default("Active")
   settings        String
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  widget          Widget   @relation(fields: [widgetId], references: [widgetId], onDelete: Cascade)
 }
