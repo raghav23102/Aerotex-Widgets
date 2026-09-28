@@ -11,6 +11,9 @@ import {
   Badge,
   Grid,
   Box,
+  IndexTable,
+  EmptyState,
+  Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { PlusIcon } from "@shopify/polaris-icons";
@@ -22,6 +25,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
   const widgetsCount = await prisma.widget.count({ where: { shop: session.shop } });
   const publishedWidgets = await prisma.widget.count({ where: { shop: session.shop, status: "Published" } });
+
+  // Fetch 5 most recent widgets
+  const recentWidgets = await prisma.widget.findMany({
+    where: { shop: session.shop },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, widgetId: true, name: true, type: true, design: true, status: true, createdAt: true },
+  });
 
   let currentPlan = "Free";
   try {
@@ -37,26 +48,14 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   return {
-    stats: {
-      totalWidgets: widgetsCount,
-      activeWidgets: publishedWidgets,
-    },
-    billing: {
-      plan: currentPlan,
-      status: "Active",
-    },
+    stats: { totalWidgets: widgetsCount, publishedWidgets },
+    billing: { plan: currentPlan, status: "Active" },
+    recentWidgets,
   };
 };
 
-const POPULAR_DESIGNS = [
-  { id: 1, name: "Modern Floating Icons",    plan: "Free",         tag: "Most Popular" },
-  { id: 2, name: "Glass Social Bar",         plan: "Starter Plan", tag: "Trending" },
-  { id: 3, name: "Bottom Sticky Bar",        plan: "Pro Plan",     tag: "Best CTR" },
-  { id: 4, name: "Premium Glass Widget",     plan: "Premium Plan", tag: "Premium" },
-];
-
 export default function Dashboard() {
-  const { stats, billing } = useLoaderData<typeof loader>();
+  const { stats, billing, recentWidgets } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   return (
@@ -68,7 +67,7 @@ export default function Dashboard() {
       </TitleBar>
 
       <BlockStack gap="500">
-        {/* ── Stats Row ── */}
+        {/* ── Stat Cards ── */}
         <Grid>
           <Grid.Cell columnSpan={{ xs: 6, sm: 4, md: 4, lg: 4, xl: 4 }}>
             <Card roundedAbove="sm">
@@ -82,7 +81,7 @@ export default function Dashboard() {
             <Card roundedAbove="sm">
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm" color="subdued">Published Widgets</Text>
-                <Text as="p" variant="headingXl">{stats.activeWidgets}</Text>
+                <Text as="p" variant="headingXl">{stats.publishedWidgets}</Text>
               </BlockStack>
             </Card>
           </Grid.Cell>
@@ -100,89 +99,110 @@ export default function Dashboard() {
         </Grid>
 
         <Layout>
+          {/* ── Recent Widgets ── */}
           <Layout.Section>
-            {/* ── Popular Designs ── */}
-            <Box paddingBlockStart="400">
-              <Text as="h2" variant="headingLg">Popular Designs</Text>
-            </Box>
-            <Box paddingBlockStart="400">
-              <Grid>
-                {POPULAR_DESIGNS.map((d) => (
-                  <Grid.Cell key={d.id} columnSpan={{ xs: 6, sm: 3, md: 3, lg: 3, xl: 3 }}>
-                    <Card padding="0">
-                      <Box background="bg-surface-secondary" minHeight="120px" padding="400" position="relative">
-                        <Box position="absolute" insetBlockStart="200" insetInlineEnd="200">
-                          <Badge>{d.plan.replace(" Plan", "")}</Badge>
-                        </Box>
-                        <InlineStack align="center" blockAlign="center">
-                          <Text as="p" variant="bodySm" color="subdued">{d.tag}</Text>
-                        </InlineStack>
-                      </Box>
-                      <Box padding="300">
-                        <BlockStack gap="200">
-                          <Text as="h3" variant="headingSm">{d.name}</Text>
-                          <InlineStack gap="200" wrap={false}>
-                            <Box style={{ flexGrow: 1 }}>
-                              <Button fullWidth onClick={() => navigate("/app/widgets/new")}>
-                                Use Design
-                              </Button>
-                            </Box>
-                            {d.plan !== "Free" && (
-                              <Button tone="success" onClick={() => navigate("/app/billing")}>
-                                Upgrade
-                              </Button>
-                            )}
-                          </InlineStack>
-                        </BlockStack>
-                      </Box>
-                    </Card>
-                  </Grid.Cell>
-                ))}
-              </Grid>
-            </Box>
+            <Card padding="0">
+              <Box padding="400">
+                <InlineStack align="space-between" blockAlign="center">
+                  <Text as="h2" variant="headingMd">Recent Widgets</Text>
+                  <Button onClick={() => navigate("/app/widgets")}>View All</Button>
+                </InlineStack>
+              </Box>
+              <Divider />
+              {recentWidgets.length === 0 ? (
+                <EmptyState
+                  heading="No widgets yet"
+                  action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new") }}
+                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                >
+                  <p>Create your first widget to see it here.</p>
+                </EmptyState>
+              ) : (
+                <IndexTable
+                  resourceName={{ singular: "widget", plural: "widgets" }}
+                  itemCount={recentWidgets.length}
+                  headings={[
+                    { title: "Name" },
+                    { title: "Type" },
+                    { title: "Design" },
+                    { title: "Status" },
+                    { title: "Action" },
+                  ]}
+                  selectable={false}
+                >
+                  {recentWidgets.map(({ id, name, type, design, status }, index) => (
+                    <IndexTable.Row
+                      id={id}
+                      key={id}
+                      position={index}
+                      onClick={() => navigate(`/app/widgets/${id}`)}
+                    >
+                      <IndexTable.Cell>
+                        <Text variant="bodyMd" fontWeight="bold" as="span">{name || "Unnamed"}</Text>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <Text variant="bodySm" as="span" color="subdued">{type}</Text>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <Text variant="bodySm" as="span" color="subdued">{design}</Text>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <Badge tone={status === "Published" ? "success" : "new"}>{status}</Badge>
+                      </IndexTable.Cell>
+                      <IndexTable.Cell>
+                        <Button
+                          size="micro"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/app/widgets/${id}`); }}
+                        >
+                          Edit
+                        </Button>
+                      </IndexTable.Cell>
+                    </IndexTable.Row>
+                  ))}
+                </IndexTable>
+              )}
+            </Card>
           </Layout.Section>
 
           {/* ── Quick Actions Sidebar ── */}
           <Layout.Section variant="oneThird">
-            <Box paddingBlockStart="400">
-              <Card roundedAbove="sm">
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">Quick Actions</Text>
-                  <BlockStack gap="200">
-                    <Button
-                      textAlign="left"
-                      fullWidth
-                      icon={PlusIcon}
-                      onClick={() => navigate("/app/widgets/new")}
-                    >
-                      Create Widget
-                    </Button>
-                    <Button
-                      textAlign="left"
-                      fullWidth
-                      onClick={() => navigate("/app/widgets")}
-                    >
-                      Manage Widgets
-                    </Button>
-                    <Button
-                      textAlign="left"
-                      fullWidth
-                      onClick={() => navigate("/app/designs")}
-                    >
-                      View Designs
-                    </Button>
-                    <Button
-                      textAlign="left"
-                      fullWidth
-                      tone="success"
-                      onClick={() => navigate("/app/billing")}
-                    >
-                      Upgrade Plan
-                    </Button>
-                  </BlockStack>
+            <Card roundedAbove="sm">
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">Quick Actions</Text>
+                <BlockStack gap="200">
+                  <Button
+                    textAlign="left"
+                    fullWidth
+                    icon={PlusIcon}
+                    onClick={() => navigate("/app/widgets/new")}
+                  >
+                    Create Widget
+                  </Button>
+                  <Button
+                    textAlign="left"
+                    fullWidth
+                    onClick={() => navigate("/app/widgets")}
+                  >
+                    Manage Widgets
+                  </Button>
+                  <Button
+                    textAlign="left"
+                    fullWidth
+                    onClick={() => navigate("/app/designs")}
+                  >
+                    View Designs
+                  </Button>
+                  <Button
+                    textAlign="left"
+                    fullWidth
+                    tone="success"
+                    onClick={() => navigate("/app/billing")}
+                  >
+                    Upgrade Plan
+                  </Button>
                 </BlockStack>
-              </Card>
-            </Box>
+              </BlockStack>
+            </Card>
           </Layout.Section>
         </Layout>
       </BlockStack>
