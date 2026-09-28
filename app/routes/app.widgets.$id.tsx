@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ActionFunctionArgs, LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { useLoaderData, useNavigate, useParams, useSubmit, useNavigation } from "@remix-run/react";
 import {
@@ -15,7 +15,6 @@ import {
   Box,
   Divider,
   Grid,
-  Icon,
 } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -68,7 +67,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     if (!widget) {
       return redirect("/app/widgets");
     }
-    // Ensure settings has all properties
     const parsedSettings = JSON.parse(widget.settings);
     if (!parsedSettings.socialLinks) parsedSettings.socialLinks = {};
     if (!parsedSettings.contactLinks) parsedSettings.contactLinks = {};
@@ -80,8 +78,19 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
-  
   const formData = await request.formData();
+  
+  const _action = formData.get("_action") as string;
+
+  if (_action === "delete") {
+    if (params.id !== "new") {
+      await prisma.widget.delete({
+        where: { id: params.id, shop: session.shop },
+      });
+    }
+    return redirect("/app/widgets");
+  }
+
   const name = formData.get("name") as string;
   const type = formData.get("type") as string;
   const design = formData.get("design") as string;
@@ -119,7 +128,6 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   return redirect("/app/widgets");
 };
 
-// Realistic SVG Icons map
 const ICON_MAP: Record<string, string> = {
   facebook: '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
   twitter: '<svg viewBox="0 0 24 24" fill="#000000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.008 4.15H5.078z"/></svg>',
@@ -157,6 +165,7 @@ export default function WidgetEditor() {
   const handleSave = () => {
     submit(
       {
+        _action: "save",
         name,
         type,
         design,
@@ -168,7 +177,12 @@ export default function WidgetEditor() {
     shopify.toast.show("Widget saved successfully.");
   };
 
-  const isSaving = navigation.state === "submitting";
+  const handleDelete = () => {
+    submit(
+      { _action: "delete" },
+      { method: "post" }
+    );
+  };
 
   const tabs = [
     { id: 'basic', content: 'Basic', panelID: 'basic-content' },
@@ -214,17 +228,27 @@ export default function WidgetEditor() {
     ? Object.entries(settings.contactLinks || {}).filter(([_, val]) => val)
     : Object.entries(settings.socialLinks || {}).filter(([_, val]) => val);
 
+  const getPositionStyles = () => {
+    switch(settings.position) {
+      case 'Bottom Left': return { insetBlockEnd: '400', insetInlineStart: '400' };
+      case 'Top Right': return { insetBlockStart: '400', insetInlineEnd: '400' };
+      case 'Left Center': return { top: '50%', insetInlineStart: '400', transform: 'translateY(-50%)' };
+      case 'Bottom Right':
+      default:
+        return { insetBlockEnd: '400', insetInlineEnd: '400' };
+    }
+  };
+
   return (
-    <Page
-      backAction={{ content: 'Widgets', onAction: () => navigate('/app/widgets') }}
-      title={isNew ? "Create Widget" : "Edit Widget"}
-      primaryAction={{ content: 'Save Widget', onAction: handleSave, loading: isSaving }}
-    >
+    <Page backAction={{ content: 'Widgets', onAction: () => navigate('/app/widgets') }}>
+      {/* TitleBar is the ONLY place we put the save button */}
       <TitleBar title={isNew ? "Create Widget" : "Edit Widget"}>
-        <button variant="primary" onClick={handleSave}>
-          Save Widget
-        </button>
+        <button variant="primary" onClick={handleSave}>Save</button>
+        {!isNew && (
+          <button tone="critical" onClick={handleDelete}>Delete Widget</button>
+        )}
       </TitleBar>
+
       <Layout>
         {/* LEFT COLUMN: Settings */}
         <Layout.Section>
@@ -233,10 +257,13 @@ export default function WidgetEditor() {
               <BlockStack gap="400">
                 <InlineStack align="space-between" blockAlign="center">
                   <Text as="h2" variant="headingMd">Widget Information</Text>
-                  <Box>
-                    <Text as="span" variant="bodySm" color="subdued">Widget ID: </Text>
-                    <Text as="span" variant="bodyMd" fontWeight="bold">{widget.widgetId}</Text>
-                  </Box>
+                  <InlineStack gap="200" blockAlign="center">
+                    <Text as="span" variant="bodySm" color="subdued">ID: {widget.widgetId}</Text>
+                    <Button size="micro" onClick={() => {
+                        navigator.clipboard.writeText(widget.widgetId);
+                        shopify.toast.show("Widget ID copied!");
+                    }}>Copy</Button>
+                  </InlineStack>
                 </InlineStack>
                 
                 <TextField
@@ -344,19 +371,10 @@ export default function WidgetEditor() {
                   {selectedTab === 4 && (
                     <BlockStack gap="400">
                       <Text as="h2" variant="headingMd">Integration Options</Text>
-                      
                       <Card background="bg-surface-secondary">
                         <BlockStack gap="200">
-                          <Text as="h3" variant="headingSm">Option A: Theme App Embed (Recommended)</Text>
-                          <Text as="p" variant="bodyMd">Enable Aerotex Widgets from your Shopify Theme Editor to display this widget across your storefront.</Text>
-                        </BlockStack>
-                      </Card>
-
-                      <Card background="bg-surface-secondary">
-                        <BlockStack gap="200">
-                          <Text as="h3" variant="headingSm">Option B: Advanced ID/CSS Selector Integration</Text>
-                          <Text as="p" variant="bodyMd">Target a specific section in your theme manually using its CSS ID or Class.</Text>
-                          <Text as="p" variant="bodyMd">Your Widget ID is: <b>{widget.widgetId}</b></Text>
+                          <Text as="h3" variant="headingSm">Automated Theme App Embed</Text>
+                          <Text as="p" variant="bodyMd">This widget is securely embedded into your active theme automatically. You do not need to edit any theme files or click any "Open Theme Editor" buttons to make it work. Just make sure the widget is saved and set to "Active".</Text>
                         </BlockStack>
                       </Card>
                     </BlockStack>
@@ -380,17 +398,17 @@ export default function WidgetEditor() {
                    </Text>
                    
                    {/* Realistic Preview */}
-                   <Box position="absolute" insetBlockEnd="400" insetInlineEnd="400">
+                   <Box position="absolute" {...getPositionStyles()}>
                       <div style={{
                         display: 'flex',
-                        flexDirection: 'column',
+                        flexDirection: settings.position === 'Left Center' || design.includes('Social Bar') ? 'row' : 'column',
                         gap: settings.spacing === 'Compact' ? '8px' : settings.spacing === 'Spacious' ? '16px' : '12px',
                         background: design.includes('Glass') ? 'rgba(255,255,255,0.7)' : '#fff',
                         backdropFilter: design.includes('Glass') ? 'blur(10px)' : 'none',
                         padding: '12px',
                         borderRadius: '24px',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        transition: 'all 0.3s ease'
+                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                       }}>
                         {activeLinks.length > 0 ? (
                           activeLinks.map(([key, _]) => (
@@ -399,7 +417,7 @@ export default function WidgetEditor() {
                             </div>
                           ))
                         ) : (
-                          <Text as="p" variant="bodySm" color="subdued">Fill out {type} links to preview icons.</Text>
+                          <Text as="p" variant="bodySm" color="subdued">Fill out links to preview.</Text>
                         )}
                       </div>
                    </Box>

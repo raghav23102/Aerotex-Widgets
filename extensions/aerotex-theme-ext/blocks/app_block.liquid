@@ -10,17 +10,75 @@
       "id": "widget_id",
       "label": "Widget ID",
       "info": "Paste the Widget ID from the Aerotex Widgets App. Example: aerotex-widget-8F42K"
+    },
+    {
+      "type": "header",
+      "content": "Design Settings"
+    },
+    {
+      "type": "select",
+      "id": "design",
+      "label": "Design Template",
+      "options": [
+        { "value": "Modern Floating Icons", "label": "Modern Floating Icons" },
+        { "value": "Minimal Social Bar", "label": "Minimal Social Bar" },
+        { "value": "Glass Social Bar", "label": "Glass Social Bar" },
+        { "value": "Bottom Sticky Social Bar", "label": "Bottom Sticky Social Bar" }
+      ],
+      "default": "Modern Floating Icons"
+    },
+    {
+      "type": "select",
+      "id": "icon_size",
+      "label": "Icon Size",
+      "options": [
+        { "value": "Small", "label": "Small" },
+        { "value": "Medium", "label": "Medium" },
+        { "value": "Large", "label": "Large" }
+      ],
+      "default": "Medium"
+    },
+    {
+      "type": "select",
+      "id": "spacing",
+      "label": "Spacing",
+      "options": [
+        { "value": "Compact", "label": "Compact" },
+        { "value": "Normal", "label": "Normal" },
+        { "value": "Spacious", "label": "Spacious" }
+      ],
+      "default": "Normal"
+    },
+    {
+      "type": "select",
+      "id": "position",
+      "label": "Desktop Position",
+      "options": [
+        { "value": "Bottom Right", "label": "Bottom Right" },
+        { "value": "Bottom Left", "label": "Bottom Left" },
+        { "value": "Top Right", "label": "Top Right" },
+        { "value": "Left Center", "label": "Left Center" }
+      ],
+      "default": "Bottom Right"
     }
   ]
 }
 {% endschema %}
 
-<!-- Aerotex Widgets App Block -->
-<div class="aerotex-widget-block" data-widget-id="{{ block.settings.widget_id }}" data-shop="{{ shop.permanent_domain }}">
+<div class="aerotex-widget-block" 
+     data-widget-id="{{ block.settings.widget_id }}" 
+     data-shop="{{ shop.permanent_domain }}"
+     data-design="{{ block.settings.design }}"
+     data-icon-size="{{ block.settings.icon_size }}"
+     data-spacing="{{ block.settings.spacing }}"
+     data-position="{{ block.settings.position }}">
   {% if block.settings.widget_id == blank %}
     <div style="padding: 20px; border: 2px dashed #ccc; text-align: center; border-radius: 8px;">
       <p style="margin: 0;"><strong>Aerotex Widget</strong></p>
       <p style="margin: 5px 0 0; font-size: 14px; color: #666;">Please paste your Widget ID in the block settings to render the widget.</p>
     </div>
+  {% else %}
+    <!-- The widget.js file will look for this element and populate it with the icons -->
+    <div class="aerotex-render-target"></div>
   {% endif %}
 </div>
