@@ -10,6 +10,7 @@ import {
   Button,
   EmptyState,
   InlineStack,
+  Box,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -45,10 +46,7 @@ export default function Widgets() {
   const navigate = useNavigate();
   const submit = useSubmit();
 
-  const resourceName = {
-    singular: "widget",
-    plural: "widgets",
-  };
+  const resourceName = { singular: "widget", plural: "widgets" };
 
   const { selectedResources, allResourcesSelected, handleSelectionChange } =
     useIndexResourceState(widgets as any);
@@ -56,10 +54,7 @@ export default function Widgets() {
   const emptyStateMarkup = (
     <EmptyState
       heading="No widgets yet"
-      action={{
-        content: "Create Widget",
-        onAction: () => navigate("/app/widgets/new"),
-      }}
+      action={{ content: "Create Widget", onAction: () => navigate("/app/widgets/new") }}
       image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
     >
       <p>Create your first Aerotex Widget and add it to your Shopify store.</p>
@@ -83,14 +78,10 @@ export default function Widgets() {
         onClick={() => navigate(`/app/widgets/${id}`)}
       >
         <IndexTable.Cell>
-          <Text variant="bodyMd" fontWeight="bold" as="span">
-            {name}
-          </Text>
+          <Text variant="bodyMd" fontWeight="bold" as="span">{name}</Text>
         </IndexTable.Cell>
         <IndexTable.Cell>
-          <Text variant="bodySm" as="span" color="subdued">
-            {widgetId}
-          </Text>
+          <Text variant="bodySm" as="span" color="subdued">{widgetId}</Text>
         </IndexTable.Cell>
         <IndexTable.Cell>{type}</IndexTable.Cell>
         <IndexTable.Cell>{design}</IndexTable.Cell>
@@ -99,8 +90,8 @@ export default function Widgets() {
         </IndexTable.Cell>
         <IndexTable.Cell>
           <InlineStack gap="200" wrap={false}>
-             <Button size="micro" onClick={(e) => { e.stopPropagation(); navigate(`/app/widgets/${id}`); }}>Edit</Button>
-             <Button size="micro" tone="critical" onClick={(e) => handleDelete(id, e)}>Delete</Button>
+            <Button size="micro" onClick={(e) => { e.stopPropagation(); navigate(`/app/widgets/${id}`); }}>Edit</Button>
+            <Button size="micro" tone="critical" onClick={(e) => handleDelete(id, e)}>Delete</Button>
           </InlineStack>
         </IndexTable.Cell>
       </IndexTable.Row>
@@ -109,29 +100,40 @@ export default function Widgets() {
 
   return (
     <Page>
-      <TitleBar title="Widgets" />
+      <TitleBar title="Widgets">
+        <button variant="primary" onClick={() => navigate("/app/widgets/new")}>
+          Create Widget
+        </button>
+      </TitleBar>
       <Card padding="0">
         {widgets.length === 0 ? (
           emptyStateMarkup
         ) : (
-          <IndexTable
-            resourceName={resourceName}
-            itemCount={widgets.length}
-            selectedItemsCount={
-              allResourcesSelected ? "All" : selectedResources.length
-            }
-            onSelectionChange={handleSelectionChange}
-            headings={[
-              { title: "Widget Name" },
-              { title: "Widget ID" },
-              { title: "Widget Type" },
-              { title: "Design" },
-              { title: "Status" },
-              { title: "Action" },
-            ]}
-          >
-            {rowMarkup}
-          </IndexTable>
+          <>
+            <Box padding="400" borderBlockEndWidth="025" borderColor="border">
+              <InlineStack align="end">
+                <Button variant="primary" onClick={() => navigate("/app/widgets/new")}>
+                  + Create Widget
+                </Button>
+              </InlineStack>
+            </Box>
+            <IndexTable
+              resourceName={resourceName}
+              itemCount={widgets.length}
+              selectedItemsCount={allResourcesSelected ? "All" : selectedResources.length}
+              onSelectionChange={handleSelectionChange}
+              headings={[
+                { title: "Widget Name" },
+                { title: "Widget ID" },
+                { title: "Widget Type" },
+                { title: "Design" },
+                { title: "Status" },
+                { title: "Action" },
+              ]}
+            >
+              {rowMarkup}
+            </IndexTable>
+          </>
         )}
       </Card>
     </Page>
