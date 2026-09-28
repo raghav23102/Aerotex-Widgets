@@ -107,6 +107,7 @@ export default function Billing() {
       id: "Free",
       price: "$0/month",
       subtitle: "Free Forever",
+      trialDays: null,
       features: [
         "2 widget designs",
         "1 active widget",
@@ -121,6 +122,7 @@ export default function Billing() {
       name: "STARTER",
       id: MONTHLY_PLAN_STARTER,
       price: "$2.99/month",
+      trialDays: 0,
       features: [
         "5 widget designs",
         "3 active widgets",
@@ -137,6 +139,7 @@ export default function Billing() {
       name: "PRO",
       id: MONTHLY_PLAN_PRO,
       price: "$5.99/month",
+      trialDays: 0,
       features: [
         "10 widget designs",
         "10 active widgets",
@@ -153,6 +156,7 @@ export default function Billing() {
       name: "PREMIUM",
       id: MONTHLY_PLAN_PREMIUM,
       price: "$9.99/month",
+      trialDays: 0,
       features: [
         "All available designs",
         "Unlimited active widgets",
@@ -196,6 +200,11 @@ export default function Billing() {
                         <Text as="h3" variant="headingLg" color={plan.isCurrent ? "text-inverse" : "text"}>{plan.name}</Text>
                         <Text as="p" variant="headingXl" color={plan.isCurrent ? "text-inverse" : "text"}>{plan.price}</Text>
                         {plan.subtitle && <Text as="p" variant="bodyMd" color={plan.isCurrent ? "text-inverse" : "subdued"}>{plan.subtitle}</Text>}
+                        {plan.trialDays !== null && plan.trialDays !== undefined && (
+                          <Text as="p" variant="bodySm" color={plan.isCurrent ? "text-inverse" : "subdued"}>
+                            {plan.trialDays === 0 ? "No free trial — billed immediately" : `${plan.trialDays}-day free trial`}
+                          </Text>
+                        )}
                       </BlockStack>
                     </Box>
                     <Divider />
