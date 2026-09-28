@@ -21,8 +21,17 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   const isNew = params.id === "new";
+
+  const billingCheck = await billing.check({
+    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+    isTest: true,
+  });
+
+  const currentPlan = billingCheck.hasActivePayment 
+    ? billingCheck.appSubscriptions[0].name 
+    : "Free";
 
   let widget;
 
@@ -73,7 +82,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     widget.settings = JSON.stringify(parsedSettings);
   }
 
-  return { isNew, widget };
+  return { isNew, widget, currentPlan };
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -128,6 +137,25 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   return redirect("/app/widgets");
 };
 
+export const ALL_DESIGNS = [
+  { name: "Minimal Social Bar", plan: "Free" },
+  { name: "Modern Floating Icons", plan: "Free" },
+  { name: "Rounded Social Bar", plan: "Starter Plan" },
+  { name: "Glass Social Bar", plan: "Starter Plan" },
+  { name: "Dark Floating Bar", plan: "Starter Plan" },
+  { name: "Vertical Side Icons", plan: "Starter Plan" },
+  { name: "Bottom Sticky Social Bar", plan: "Pro Plan" },
+  { name: "Gradient Social Bar", plan: "Pro Plan" },
+  { name: "Compact Social Icons", plan: "Pro Plan" },
+  { name: "Large Floating Icons", plan: "Pro Plan" },
+  { name: "Pill Social Bar", plan: "Pro Plan" },
+  { name: "Elegant Outline Icons", plan: "Premium Plan" },
+  { name: "Social + Contact Widget", plan: "Premium Plan" },
+  { name: "Modern Contact Bubble", plan: "Premium Plan" },
+  { name: "Multi-Action Floating Widget", plan: "Premium Plan" },
+  { name: "Premium Glass Widget", plan: "Premium Plan" },
+];
+
 const ICON_MAP: Record<string, string> = {
   facebook: '<svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>',
   twitter: '<svg viewBox="0 0 24 24" fill="#000000"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.008 4.15H5.078z"/></svg>',
@@ -144,7 +172,7 @@ const ICON_MAP: Record<string, string> = {
 };
 
 export default function WidgetEditor() {
-  const { isNew, widget } = useLoaderData<typeof loader>();
+  const { isNew, widget, currentPlan } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -156,6 +184,23 @@ export default function WidgetEditor() {
   const [settings, setSettings] = useState(() => JSON.parse(widget.settings));
   
   const [selectedTab, setSelectedTab] = useState(0);
+
+  const getPlanLevel = (plan: string) => {
+    switch (plan) {
+      case "Premium Plan": return 3;
+      case "Pro Plan": return 2;
+      case "Starter Plan": return 1;
+      default: return 0;
+    }
+  };
+
+  const currentLevel = getPlanLevel(currentPlan);
+
+  const designOptions = ALL_DESIGNS.map(d => ({
+    label: d.name + (getPlanLevel(d.plan) > currentLevel ? ` (Locked - ${d.plan.replace(' Plan','')})` : ''),
+    value: d.name,
+    disabled: getPlanLevel(d.plan) > currentLevel
+  }));
   
   const handleTabChange = useCallback(
     (selectedTabIndex: number) => setSelectedTab(selectedTabIndex),
@@ -229,6 +274,9 @@ export default function WidgetEditor() {
     : Object.entries(settings.socialLinks || {}).filter(([_, val]) => val);
 
   const getPositionStyles = () => {
+    // If it's sticky bottom, override inset
+    if (design === 'Bottom Sticky Social Bar') return { insetBlockEnd: '0', insetInlineStart: '0', width: '100%' };
+
     switch(settings.position) {
       case 'Bottom Left': return { insetBlockEnd: '400', insetInlineStart: '400' };
       case 'Top Right': return { insetBlockStart: '400', insetInlineEnd: '400' };
@@ -237,6 +285,64 @@ export default function WidgetEditor() {
       default:
         return { insetBlockEnd: '400', insetInlineEnd: '400' };
     }
+  };
+
+  const getDesignStyles = (): React.CSSProperties => {
+    let baseStyles: React.CSSProperties = {
+      display: 'flex',
+      flexDirection: settings.position === 'Left Center' ? 'row' : 'column',
+      gap: settings.spacing === 'Compact' ? '8px' : settings.spacing === 'Spacious' ? '16px' : '12px',
+      background: '#fff',
+      padding: '12px',
+      borderRadius: '24px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    };
+
+    if (design === 'Minimal Social Bar') {
+      baseStyles.flexDirection = 'row';
+      baseStyles.borderRadius = '8px';
+      baseStyles.padding = '8px';
+    } else if (design === 'Modern Floating Icons') {
+      baseStyles.borderRadius = '16px';
+    } else if (design === 'Rounded Social Bar') {
+      baseStyles.flexDirection = 'row';
+      baseStyles.borderRadius = '40px';
+    } else if (design === 'Glass Social Bar' || design.includes('Glass')) {
+      baseStyles.flexDirection = 'row';
+      baseStyles.background = 'rgba(255,255,255,0.7)';
+      baseStyles.backdropFilter = 'blur(10px)';
+    } else if (design === 'Dark Floating Bar') {
+      baseStyles.background = '#1a1a1a';
+      // Icons might be dark natively but we don't change SVGs easily without filter, so keep it simple
+    } else if (design === 'Vertical Side Icons') {
+      baseStyles.flexDirection = 'column';
+      baseStyles.borderRadius = '0 12px 12px 0';
+    } else if (design === 'Bottom Sticky Social Bar') {
+      baseStyles.flexDirection = 'row';
+      baseStyles.width = '100%';
+      baseStyles.borderRadius = '0';
+    } else if (design === 'Gradient Social Bar') {
+      baseStyles.flexDirection = 'row';
+      baseStyles.background = 'linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)';
+    } else if (design === 'Pill Social Bar') {
+      baseStyles.flexDirection = 'row';
+      baseStyles.borderRadius = '50px';
+    } else if (design === 'Compact Social Icons') {
+      baseStyles.padding = '6px';
+      baseStyles.gap = '6px';
+    } else if (design === 'Large Floating Icons') {
+      baseStyles.padding = '16px';
+      baseStyles.gap = '16px';
+    } else if (design === 'Premium Glass Widget') {
+      baseStyles.background = 'rgba(0,0,0,0.6)';
+      baseStyles.backdropFilter = 'blur(16px)';
+      baseStyles.border = '1px solid rgba(255,255,255,0.2)';
+    }
+
+    return baseStyles;
   };
 
   return (
@@ -296,7 +402,7 @@ export default function WidgetEditor() {
                     <BlockStack gap="400">
                       <Select
                         label="Design Template"
-                        options={['Modern Floating Icons', 'Minimal Social Bar', 'Glass Social Bar', 'Bottom Sticky Social Bar']}
+                        options={designOptions as any}
                         value={design}
                         onChange={setDesign}
                       />
@@ -392,24 +498,11 @@ export default function WidgetEditor() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingMd">Live Preview</Text>
                 <Divider />
-                <Box minHeight="300px" background="bg-surface-secondary" borderRadius="200" padding="400" position="relative" overflow="hidden">
-                   <Text as="p" variant="bodyMd" color="subdued" alignment="center">
-                     {name || "Your Widget"}
-                   </Text>
+                <Box minHeight="300px" background="bg-surface-secondary" borderRadius="200" padding="0" position="relative" overflow="hidden">
                    
                    {/* Realistic Preview */}
                    <Box position="absolute" {...getPositionStyles()}>
-                      <div style={{
-                        display: 'flex',
-                        flexDirection: settings.position === 'Left Center' || design.includes('Social Bar') ? 'row' : 'column',
-                        gap: settings.spacing === 'Compact' ? '8px' : settings.spacing === 'Spacious' ? '16px' : '12px',
-                        background: design.includes('Glass') ? 'rgba(255,255,255,0.7)' : '#fff',
-                        backdropFilter: design.includes('Glass') ? 'blur(10px)' : 'none',
-                        padding: '12px',
-                        borderRadius: '24px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                      }}>
+                      <div style={getDesignStyles()}>
                         {activeLinks.length > 0 ? (
                           activeLinks.map(([key, value]) => {
                             // Ensure the link has http:// or https:// or mailto: / tel:

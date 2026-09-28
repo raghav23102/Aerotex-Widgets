@@ -38,30 +38,70 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
 
     let sizePx = iconSize === 'Small' ? '24px' : iconSize === 'Large' ? '48px' : '36px';
     let gapPx = spacing === 'Compact' ? '8px' : spacing === 'Spacious' ? '16px' : '12px';
-    let flexDir = position === 'Left Center' || design.includes('Social Bar') ? 'row' : 'column';
     
     const widgetHtml = document.createElement('div');
     widgetHtml.style.display = 'flex';
-    widgetHtml.style.flexDirection = flexDir;
+    widgetHtml.style.flexDirection = position === 'Left Center' ? 'row' : 'column'; // defaults
     widgetHtml.style.gap = gapPx;
     widgetHtml.style.position = 'fixed';
     widgetHtml.style.zIndex = '999999';
     widgetHtml.style.transition = 'all 0.3s ease';
+    widgetHtml.style.justifyContent = 'center';
+    widgetHtml.style.alignItems = 'center';
 
-    if (design.includes('Glass')) {
+    // Default Appearance
+    widgetHtml.style.background = '#fff';
+    widgetHtml.style.padding = '12px';
+    widgetHtml.style.borderRadius = '24px';
+    widgetHtml.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+
+    // Design Overrides
+    if (design === 'Minimal Social Bar') {
+      widgetHtml.style.flexDirection = 'row';
+      widgetHtml.style.borderRadius = '8px';
+      widgetHtml.style.padding = '8px';
+    } else if (design === 'Modern Floating Icons') {
+      widgetHtml.style.borderRadius = '16px';
+    } else if (design === 'Rounded Social Bar') {
+      widgetHtml.style.flexDirection = 'row';
+      widgetHtml.style.borderRadius = '40px';
+    } else if (design === 'Glass Social Bar' || design.includes('Glass')) {
+      widgetHtml.style.flexDirection = 'row';
       widgetHtml.style.background = 'rgba(255,255,255,0.7)';
       widgetHtml.style.backdropFilter = 'blur(10px)';
-      widgetHtml.style.padding = '12px';
-      widgetHtml.style.borderRadius = '24px';
       widgetHtml.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-    } else {
-      widgetHtml.style.background = '#fff';
-      widgetHtml.style.padding = '12px';
-      widgetHtml.style.borderRadius = '24px';
-      widgetHtml.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+    } else if (design === 'Dark Floating Bar') {
+      widgetHtml.style.background = '#1a1a1a';
+    } else if (design === 'Vertical Side Icons') {
+      widgetHtml.style.flexDirection = 'column';
+      widgetHtml.style.borderRadius = '0 12px 12px 0';
+    } else if (design === 'Bottom Sticky Social Bar') {
+      widgetHtml.style.flexDirection = 'row';
+      widgetHtml.style.width = '100%';
+      widgetHtml.style.borderRadius = '0';
+    } else if (design === 'Gradient Social Bar') {
+      widgetHtml.style.flexDirection = 'row';
+      widgetHtml.style.background = 'linear-gradient(90deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)';
+    } else if (design === 'Pill Social Bar') {
+      widgetHtml.style.flexDirection = 'row';
+      widgetHtml.style.borderRadius = '50px';
+    } else if (design === 'Compact Social Icons') {
+      widgetHtml.style.padding = '6px';
+      widgetHtml.style.gap = '6px';
+    } else if (design === 'Large Floating Icons') {
+      widgetHtml.style.padding = '16px';
+      widgetHtml.style.gap = '16px';
+    } else if (design === 'Premium Glass Widget') {
+      widgetHtml.style.background = 'rgba(0,0,0,0.6)';
+      widgetHtml.style.backdropFilter = 'blur(16px)';
+      widgetHtml.style.border = '1px solid rgba(255,255,255,0.2)';
     }
 
-    if (position === 'Bottom Left') {
+    // Position Handling
+    if (design === 'Bottom Sticky Social Bar') {
+      widgetHtml.style.bottom = '0';
+      widgetHtml.style.left = '0';
+    } else if (position === 'Bottom Left') {
       widgetHtml.style.bottom = '20px'; widgetHtml.style.left = '20px';
     } else if (position === 'Top Right') {
       widgetHtml.style.top = '20px'; widgetHtml.style.right = '20px';
