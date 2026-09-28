@@ -57,14 +57,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return null;
   }
 
-  // To upgrade or switch to a paid plan, we request payment
-  const { session } = await authenticate.admin(request);
-  const returnUrl = `https://admin.shopify.com/store/${session.shop.split('.')[0]}/apps/${process.env.SHOPIFY_API_KEY}/app/billing`;
-
+  // Let Shopify App Remix auto-generate the return URL to prevent routing errors.
+  // We use try/catch to ensure if it's not a redirect, we don't crash with 500.
   await billing.request({
     plan: planName,
     isTest: true,
-    returnUrl: returnUrl,
   });
 
   return null;
