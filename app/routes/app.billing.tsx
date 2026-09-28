@@ -1,5 +1,5 @@
-import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
+import { LoaderFunctionArgs, ActionFunctionArgs, json } from "@remix-run/node";
+import { useLoaderData, useSubmit, useNavigation, useActionData } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -11,6 +11,7 @@ import {
   Box,
   List,
   Divider,
+  Banner,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
@@ -59,16 +60,25 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Let Shopify App Remix auto-generate the return URL to prevent routing errors.
   // We use try/catch to ensure if it's not a redirect, we don't crash with 500.
-  await billing.request({
-    plan: planName,
-    isTest: true,
-  });
+  try {
+    await billing.request({
+      plan: planName,
+      isTest: true,
+    });
+  } catch (error) {
+    if (error instanceof Response) {
+      throw error;
+    }
+    console.error("Billing Request Error:", error);
+    return json({ error: String(error) }, { status: 400 });
+  }
 
   return null;
 };
 
 export default function Billing() {
   const { currentPlan } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const submit = useSubmit();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
@@ -159,6 +169,11 @@ export default function Billing() {
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
+            {actionData?.error && (
+              <Banner tone="critical" title="Billing Request Failed">
+                <p>{actionData.error}</p>
+              </Banner>
+            )}
             <Card roundedAbove="sm">
                <BlockStack gap="400">
                   <Text as="h2" variant="headingMd">Subscription Plans</Text>
