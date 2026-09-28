@@ -1,5 +1,5 @@
-import { LoaderFunctionArgs } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
+import { useLoaderData, useSubmit, useNavigation } from "@remix-run/react";
 import {
   Page,
   Layout,
@@ -9,28 +9,87 @@ import {
   Button,
   Grid,
   Box,
-  Badge,
   List,
   Divider,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
-import { authenticate } from "../shopify.server";
+import { authenticate, MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { billing } = await authenticate.admin(request);
   
-  // Mock current plan
-  return {
-    currentPlan: "Free",
-  };
+  // Check active plan
+  const billingCheck = await billing.check({
+    plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
+    isTest: true,
+  });
+
+  const currentPlan = billingCheck.hasActivePayment 
+    ? billingCheck.appSubscriptions[0].name 
+    : "Free";
+
+  return { currentPlan };
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { billing } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const planName = formData.get("plan") as string;
+  
+  if (planName === "Free") {
+    // To downgrade to free, we cancel the current subscription.
+    const billingCheck = await billing.check({
+      plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
+      isTest: true,
+    });
+    
+    if (billingCheck.hasActivePayment) {
+      await billing.cancel({
+        subscriptionId: billingCheck.appSubscriptions[0].id,
+        isTest: true,
+        prorate: true,
+      });
+    }
+    return null;
+  }
+
+  // To upgrade or switch to a paid plan, we request payment
+  const url = new URL(request.url);
+  const returnUrl = `${url.protocol}//${url.host}/app/billing`;
+
+  await billing.request({
+    plan: planName,
+    isTest: true,
+    returnUrl: returnUrl,
+  });
+
+  return null;
 };
 
 export default function Billing() {
   const { currentPlan } = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  const handlePlanChange = (planName: string) => {
+    submit({ plan: planName }, { method: "post" });
+  };
+
+  const getPlanLevel = (planName: string) => {
+    if (planName === "Free") return 0;
+    if (planName === MONTHLY_PLAN_STARTER) return 1;
+    if (planName === MONTHLY_PLAN_PRO) return 2;
+    if (planName === MONTHLY_PLAN_PREMIUM) return 3;
+    return 0;
+  };
+
+  const currentLevel = getPlanLevel(currentPlan);
 
   const plans = [
     {
-      name: "FREE",
+      name: "Free",
+      id: "Free",
       price: "$0/month",
       subtitle: "Free Forever",
       features: [
@@ -41,9 +100,11 @@ export default function Billing() {
         "App Embed & App Block",
       ],
       isCurrent: currentPlan === "Free",
+      level: 0
     },
     {
       name: "STARTER",
+      id: MONTHLY_PLAN_STARTER,
       price: "$2.99/month",
       features: [
         "5 widget designs",
@@ -54,10 +115,12 @@ export default function Billing() {
         "Desktop/mobile controls",
         "ID/CSS selector integration",
       ],
-      isCurrent: currentPlan === "Starter",
+      isCurrent: currentPlan === MONTHLY_PLAN_STARTER,
+      level: 1
     },
     {
       name: "PRO",
+      id: MONTHLY_PLAN_PRO,
       price: "$5.99/month",
       features: [
         "10 widget designs",
@@ -68,10 +131,12 @@ export default function Billing() {
         "Custom styling",
         "Priority support",
       ],
-      isCurrent: currentPlan === "Pro",
+      isCurrent: currentPlan === MONTHLY_PLAN_PRO,
+      level: 2
     },
     {
       name: "PREMIUM",
+      id: MONTHLY_PLAN_PREMIUM,
       price: "$9.99/month",
       features: [
         "All available designs",
@@ -82,7 +147,8 @@ export default function Billing() {
         "Advanced positioning",
         "All integration methods",
       ],
-      isCurrent: currentPlan === "Premium",
+      isCurrent: currentPlan === MONTHLY_PLAN_PREMIUM,
+      level: 3
     }
   ];
 
@@ -96,7 +162,7 @@ export default function Billing() {
                <BlockStack gap="400">
                   <Text as="h2" variant="headingMd">Subscription Plans</Text>
                   <Text as="p" variant="bodyMd">
-                    Upgrade to unlock more Aerotex Widgets features.
+                    Upgrade to unlock more Aerotex Widgets features. Shopify handles prorated billing automatically.
                   </Text>
                </BlockStack>
             </Card>
@@ -123,8 +189,22 @@ export default function Billing() {
                         
                         {plan.isCurrent ? (
                           <Button fullWidth disabled>Current Plan</Button>
+                        ) : plan.level < currentLevel ? (
+                          <Button 
+                            fullWidth 
+                            onClick={() => handlePlanChange(plan.id)}
+                            loading={isSubmitting}
+                            tone="critical"
+                          >
+                            Downgrade
+                          </Button>
                         ) : (
-                          <Button fullWidth variant="primary">
+                          <Button 
+                            fullWidth 
+                            variant="primary" 
+                            onClick={() => handlePlanChange(plan.id)}
+                            loading={isSubmitting}
+                          >
                             Upgrade
                           </Button>
                         )}
