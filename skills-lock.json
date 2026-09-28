@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "shopify": {
+      "source": "Shopify/shopify-ai-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/shopify/SKILL.md",
+      "computedHash": "8c12144488eea8fea3708bdd594bc14520d7ef9db4209e6b993a1272025d8ec1"
+    },
+    "ucp": {
+      "source": "Shopify/shopify-ai-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/ucp/SKILL.md",
+      "computedHash": "29720b69cc4545637c0e60b062d281fbd3b8adeab172b79369da8e60310f2e05"
+    }
+  }
+}
