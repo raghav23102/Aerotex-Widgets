@@ -58,8 +58,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   }
 
   // To upgrade or switch to a paid plan, we request payment
-  const url = new URL(request.url);
-  const returnUrl = `${url.protocol}//${url.host}/app/billing`;
+  const { session } = await authenticate.admin(request);
+  const returnUrl = `https://admin.shopify.com/store/${session.shop.split('.')[0]}/apps/${process.env.SHOPIFY_API_KEY}/app/billing`;
 
   await billing.request({
     plan: planName,
