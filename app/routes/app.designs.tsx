@@ -17,27 +17,50 @@ import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { billing } = await authenticate.admin(request);
   
+  const billingCheck = await billing.check({
+    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+    isTest: true,
+  });
+
+  const currentPlan = billingCheck.hasActivePayment 
+    ? billingCheck.appSubscriptions[0].name 
+    : "Free";
+
+  const getPlanLevel = (plan: string) => {
+    switch (plan) {
+      case "Premium Plan": return 3;
+      case "Pro Plan": return 2;
+      case "Starter Plan": return 1;
+      default: return 0;
+    }
+  };
+
+  const currentLevel = getPlanLevel(currentPlan);
+
   // Mock design library
   const designs = [
-    { id: 1, name: "Minimal Social Bar", plan: "Free", locked: false },
-    { id: 2, name: "Modern Floating Icons", plan: "Free", locked: false },
-    { id: 3, name: "Rounded Social Bar", plan: "Starter", locked: true },
-    { id: 4, name: "Glass Social Bar", plan: "Starter", locked: true },
-    { id: 5, name: "Dark Floating Bar", plan: "Starter", locked: true },
-    { id: 6, name: "Vertical Side Icons", plan: "Starter", locked: true },
-    { id: 7, name: "Bottom Sticky Social Bar", plan: "Pro", locked: true },
-    { id: 8, name: "Gradient Social Bar", plan: "Pro", locked: true },
-    { id: 9, name: "Compact Social Icons", plan: "Pro", locked: true },
-    { id: 10, name: "Large Floating Icons", plan: "Pro", locked: true },
-    { id: 11, name: "Pill Social Bar", plan: "Pro", locked: true },
-    { id: 12, name: "Elegant Outline Icons", plan: "Premium", locked: true },
-    { id: 13, name: "Social + Contact Widget", plan: "Premium", locked: true },
-    { id: 14, name: "Modern Contact Bubble", plan: "Premium", locked: true },
-    { id: 15, name: "Multi-Action Floating Widget", plan: "Premium", locked: true },
-    { id: 16, name: "Premium Glass Widget", plan: "Premium", locked: true },
-  ];
+    { id: 1, name: "Minimal Social Bar", plan: "Free" },
+    { id: 2, name: "Modern Floating Icons", plan: "Free" },
+    { id: 3, name: "Rounded Social Bar", plan: "Starter Plan" },
+    { id: 4, name: "Glass Social Bar", plan: "Starter Plan" },
+    { id: 5, name: "Dark Floating Bar", plan: "Starter Plan" },
+    { id: 6, name: "Vertical Side Icons", plan: "Starter Plan" },
+    { id: 7, name: "Bottom Sticky Social Bar", plan: "Pro Plan" },
+    { id: 8, name: "Gradient Social Bar", plan: "Pro Plan" },
+    { id: 9, name: "Compact Social Icons", plan: "Pro Plan" },
+    { id: 10, name: "Large Floating Icons", plan: "Pro Plan" },
+    { id: 11, name: "Pill Social Bar", plan: "Pro Plan" },
+    { id: 12, name: "Elegant Outline Icons", plan: "Premium Plan" },
+    { id: 13, name: "Social + Contact Widget", plan: "Premium Plan" },
+    { id: 14, name: "Modern Contact Bubble", plan: "Premium Plan" },
+    { id: 15, name: "Multi-Action Floating Widget", plan: "Premium Plan" },
+    { id: 16, name: "Premium Glass Widget", plan: "Premium Plan" },
+  ].map(d => ({
+    ...d,
+    locked: getPlanLevel(d.plan) > currentLevel
+  }));
 
   return { designs };
 };
@@ -66,14 +89,13 @@ export default function Designs() {
                 <Grid.Cell key={design.id} columnSpan={{xs: 6, sm: 3, md: 3, lg: 3, xl: 3}}>
                   <Card padding="0">
                     <Box background="bg-surface-secondary" minHeight="150px" padding="400" position="relative">
-                      {design.locked && (
+                      {design.locked ? (
                          <Box position="absolute" insetBlockStart="200" insetInlineEnd="200">
-                            <Badge tone="warning">Locked ({design.plan})</Badge>
+                            <Badge tone="warning">Locked ({design.plan.replace(" Plan", "")})</Badge>
                          </Box>
-                      )}
-                      {!design.locked && (
+                      ) : (
                          <Box position="absolute" insetBlockStart="200" insetInlineEnd="200">
-                            <Badge tone="success">Available</Badge>
+                            <Badge tone="success">Unlocked</Badge>
                          </Box>
                       )}
                       
@@ -85,14 +107,23 @@ export default function Designs() {
                     <Box padding="400">
                       <BlockStack gap="400">
                         <Text as="h3" variant="headingSm">{design.name}</Text>
-                        <Button 
-                          fullWidth 
-                          variant={design.locked ? "secondary" : "primary"}
-                          disabled={design.locked}
-                          onClick={() => navigate("/app/widgets/new")}
-                        >
-                          {design.locked ? `Unlock with ${design.plan}` : "Use Design"}
-                        </Button>
+                        {design.locked ? (
+                          <Button 
+                            fullWidth 
+                            tone="success"
+                            onClick={() => navigate("/app/billing")}
+                          >
+                            Upgrade to Unlock
+                          </Button>
+                        ) : (
+                          <Button 
+                            fullWidth 
+                            variant="primary"
+                            onClick={() => navigate("/app/widgets/new")}
+                          >
+                            Use Design
+                          </Button>
+                        )}
                       </BlockStack>
                     </Box>
                   </Card>

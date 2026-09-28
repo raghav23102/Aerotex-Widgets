@@ -11,35 +11,41 @@ import {
   Badge,
   Grid,
   Box,
-  Icon,
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { PlusIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
+  const { session, billing } = await authenticate.admin(request);
   
-  // Mock data for now
+  const widgetsCount = await prisma.widget.count({ where: { shop: session.shop } });
+  const activeWidgets = await prisma.widget.count({ where: { shop: session.shop, status: "Active" } });
+
+  const billingCheck = await billing.check({
+    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+    isTest: true,
+  });
+
+  const currentPlan = billingCheck.hasActivePayment 
+    ? billingCheck.appSubscriptions[0].name 
+    : "Free";
+
   return {
     stats: {
-      totalWidgets: 3,
-      activeWidgets: 2,
-      availableDesigns: 16,
-      designsUsed: 2,
+      totalWidgets: widgetsCount,
+      activeWidgets: activeWidgets,
     },
     billing: {
-      plan: "Free",
+      plan: currentPlan,
       status: "Active",
-    },
-    integration: {
-      status: "Not Connected", // "Connected" | "Not Connected"
     }
   };
 };
 
 export default function Dashboard() {
-  const { stats, billing, integration } = useLoaderData<typeof loader>();
+  const { stats, billing } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   return (
@@ -52,7 +58,7 @@ export default function Dashboard() {
 
       <BlockStack gap="500">
         <Grid>
-          <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 3, xl: 3}}>
+          <Grid.Cell columnSpan={{xs: 6, sm: 4, md: 4, lg: 4, xl: 4}}>
             <Card roundedAbove="sm">
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm" color="subdued">Total Widgets</Text>
@@ -60,7 +66,7 @@ export default function Dashboard() {
               </BlockStack>
             </Card>
           </Grid.Cell>
-          <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 3, xl: 3}}>
+          <Grid.Cell columnSpan={{xs: 6, sm: 4, md: 4, lg: 4, xl: 4}}>
             <Card roundedAbove="sm">
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm" color="subdued">Active Widgets</Text>
@@ -68,7 +74,7 @@ export default function Dashboard() {
               </BlockStack>
             </Card>
           </Grid.Cell>
-          <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 3, xl: 3}}>
+          <Grid.Cell columnSpan={{xs: 6, sm: 4, md: 4, lg: 4, xl: 4}}>
             <Card roundedAbove="sm">
               <BlockStack gap="200">
                 <Text as="h3" variant="headingSm" color="subdued">Current Plan</Text>
@@ -79,50 +85,10 @@ export default function Dashboard() {
               </BlockStack>
             </Card>
           </Grid.Cell>
-          <Grid.Cell columnSpan={{xs: 6, sm: 3, md: 3, lg: 3, xl: 3}}>
-            <Card roundedAbove="sm">
-              <BlockStack gap="200">
-                <Text as="h3" variant="headingSm" color="subdued">Theme Integration</Text>
-                <InlineStack gap="200" align="start" blockAlign="center">
-                  <Text as="p" variant="headingLg">
-                    {integration.status}
-                  </Text>
-                  <Badge tone={integration.status === "Connected" ? "success" : "critical"}>
-                    {integration.status === "Connected" ? "Active" : "Action Required"}
-                  </Badge>
-                </InlineStack>
-              </BlockStack>
-            </Card>
-          </Grid.Cell>
         </Grid>
 
         <Layout>
           <Layout.Section>
-            <Card roundedAbove="sm">
-              <BlockStack gap="400">
-                <Text as="h2" variant="headingMd">Theme Integration Status</Text>
-                
-                {integration.status === "Not Connected" ? (
-                  <BlockStack gap="300">
-                    <Box padding="300" background="bg-surface-warning" borderRadius="200">
-                      <Text as="p" variant="bodyMd">
-                        Aerotex Widgets is not currently enabled in your theme. You must enable the App Embed for your widgets to appear on your storefront.
-                      </Text>
-                    </Box>
-                    <InlineStack>
-                      <Button variant="primary">Enable in Theme Editor</Button>
-                    </InlineStack>
-                  </BlockStack>
-                ) : (
-                  <Box padding="300" background="bg-surface-success" borderRadius="200">
-                    <Text as="p" variant="bodyMd">
-                      Aerotex Widgets is successfully connected to your theme. Your active widgets will display on the storefront.
-                    </Text>
-                  </Box>
-                )}
-              </BlockStack>
-            </Card>
-
             <Box paddingBlockStart="400">
               <Text as="h2" variant="headingLg">Popular Designs</Text>
             </Box>
@@ -140,7 +106,12 @@ export default function Dashboard() {
                     <Box padding="300">
                       <BlockStack gap="200">
                         <Text as="h3" variant="headingSm">Design Theme {i}</Text>
-                        <Button fullWidth onClick={() => navigate("/app/designs")}>Use Design</Button>
+                        <InlineStack gap="200" wrap={false}>
+                          <Box style={{flexGrow: 1}}>
+                            <Button fullWidth onClick={() => navigate("/app/designs")}>Use Design</Button>
+                          </Box>
+                          <Button tone="success" onClick={() => navigate("/app/billing")}>Upgrade</Button>
+                        </InlineStack>
                       </BlockStack>
                     </Box>
                   </Card>
@@ -163,11 +134,8 @@ export default function Dashboard() {
                   <Button textAlign="left" fullWidth onClick={() => navigate("/app/widgets")}>
                     Manage Integrations
                   </Button>
-                  <Button textAlign="left" fullWidth onClick={() => navigate("/app/billing")}>
-                    Manage Billing
-                  </Button>
-                  <Button textAlign="left" fullWidth>
-                    Open Theme Editor
+                  <Button textAlign="left" fullWidth tone="success" onClick={() => navigate("/app/billing")}>
+                    Upgrade Plan
                   </Button>
                 </BlockStack>
               </BlockStack>
