@@ -185,14 +185,18 @@ function DesignPreview({ name, locked }: { name: string; locked: boolean }) {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
   
-  const billingCheck = await billing.check({
-    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
-    isTest: true,
-  });
-
-  const currentPlan = billingCheck.hasActivePayment 
-    ? billingCheck.appSubscriptions[0].name 
-    : "Free";
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    currentPlan = "Free";
+  }
 
   const getPlanLevel = (plan: string) => {
     switch (plan) {

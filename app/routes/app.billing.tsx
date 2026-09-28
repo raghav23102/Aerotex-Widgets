@@ -24,14 +24,18 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { billing } = await authenticate.admin(request);
   
   // Check active plan
-  const billingCheck = await billing.check({
-    plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
-    isTest: true,
-  });
-
-  const currentPlan = billingCheck.hasActivePayment 
-    ? billingCheck.appSubscriptions[0].name 
-    : "Free";
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    currentPlan = "Free";
+  }
 
   return { currentPlan };
 };

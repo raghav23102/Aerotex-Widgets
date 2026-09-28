@@ -55,14 +55,18 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return redirect(`/app/widgets/${newWidget.id}`);
   }
 
-  const billingCheck = await billing.check({
-    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
-    isTest: true,
-  });
-
-  const currentPlan = billingCheck.hasActivePayment 
-    ? billingCheck.appSubscriptions[0].name 
-    : "Free";
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    currentPlan = "Free";
+  }
 
   const widget = await prisma.widget.findUnique({
     where: { id: params.id, shop: session.shop },
