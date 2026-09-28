@@ -110,7 +110,7 @@ export default function Billing() {
       trialDays: null,
       features: [
         "2 widget designs",
-        "1 active widget",
+        "1 widget limit",
         "Up to 3 social links",
         "Basic designs & icon styles",
         "App Embed & App Block",
@@ -125,7 +125,7 @@ export default function Billing() {
       trialDays: 0,
       features: [
         "5 widget designs",
-        "3 active widgets",
+        "5 widget limit",
         "All social platforms",
         "Sticky & Floating widgets",
         "Basic animations",
@@ -142,7 +142,7 @@ export default function Billing() {
       trialDays: 0,
       features: [
         "10 widget designs",
-        "10 active widgets",
+        "10 widget limit",
         "All standard designs",
         "All icon styles & animations",
         "Multiple widgets",
@@ -159,7 +159,7 @@ export default function Billing() {
       trialDays: 0,
       features: [
         "All available designs",
-        "Unlimited active widgets",
+        "Unlimited widgets",
         "Unlimited social links",
         "Premium designs",
         "Custom CSS",

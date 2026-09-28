@@ -41,7 +41,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   if (isNew) {
     const maxWidgetsMap: Record<string, number> = {
       "Free": 1,
-      "Starter Plan": 4,
+      "Starter Plan": 5,
       "Pro Plan": 10,
       "Premium Plan": Infinity
     };
