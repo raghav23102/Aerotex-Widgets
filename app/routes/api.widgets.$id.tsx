@@ -26,9 +26,19 @@ export const loader = async ({ params, request }: LoaderFunctionArgs) => {
     return json({ error: "Widget not found" }, { status: 404, headers: { "Access-Control-Allow-Origin": "*" } });
   }
 
+  // If the widget is being fetched by the storefront and it's a Draft, mark it as Published
+  if (widget.status === "Draft") {
+    await prisma.widget.update({
+      where: { id: widget.id },
+      data: { status: "Published" }
+    });
+    widget.status = "Published";
+  }
+
   return json(widget, {
     headers: {
       "Access-Control-Allow-Origin": "*",
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
     },
   });
 };

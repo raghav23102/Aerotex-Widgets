@@ -23,19 +23,7 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
     }
   }
 
-  async function renderWidget(container, widgetId) {
-    // Show a loading state or nothing while fetching
-    const widgetData = await fetchWidgetData(widgetId);
-    
-    // If widget not found or inactive, do not render
-    if (!widgetData || widgetData.status !== "Active") {
-      // Inside theme editor, we might still want to show a placeholder if it's invalid
-      if (window.Shopify && window.Shopify.designMode) {
-        container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget: Invalid ID or Inactive</div>`;
-      }
-      return;
-    }
-
+  function renderWidgetHtml(widgetData, container) {
     let parsedSettings = {};
     try {
       parsedSettings = JSON.parse(widgetData.settings || '{}');
@@ -165,24 +153,59 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       widgetHtml.appendChild(iconWrapper);
     });
 
-    // Clear any loading state before appending
-    container.innerHTML = '';
     container.appendChild(widgetHtml);
   }
 
+  async function renderWidget(container, widgetId) {
+    const widgetData = await fetchWidgetData(widgetId);
+    
+    if (!widgetData || !["Active", "Published", "Draft"].includes(widgetData.status)) {
+      if (window.Shopify && window.Shopify.designMode) {
+        container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget: Invalid ID or Inactive</div>`;
+      }
+      return;
+    }
+    
+    container.innerHTML = '';
+    renderWidgetHtml(widgetData, container);
+  }
+
+  async function initGlobalWidgets(container) {
+    const shop = container.getAttribute('data-shop');
+    if (!shop) return;
+    
+    try {
+      const response = await fetch(`${AppDomain}/api/widgets/active?shop=${shop}`);
+      if (!response.ok) return;
+      const widgets = await response.json();
+      
+      container.innerHTML = '';
+      widgets.forEach(widgetData => {
+        renderWidgetHtml(widgetData, container);
+      });
+    } catch (e) {
+      console.error("Aerotex Widget global load error", e);
+    }
+  }
+
   function initWidgets() {
+    // Render specific block widgets
     const blocks = document.querySelectorAll('.aerotex-widget-block');
     blocks.forEach(block => {
       const widgetId = block.getAttribute('data-widget-id');
-      
       const target = block.querySelector('.aerotex-render-target');
 
       if (widgetId && target) {
-        // Clear previous renders (useful inside theme editor)
         target.innerHTML = '';
         renderWidget(target, widgetId);
       }
     });
+
+    // Render global embed widgets
+    const globalContainer = document.getElementById('aerotex-widgets-container');
+    if (globalContainer) {
+      initGlobalWidgets(globalContainer);
+    }
   }
 
   // Run on load

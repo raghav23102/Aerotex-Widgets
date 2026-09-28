@@ -42,7 +42,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       name: "",
       type: "Social Media",
       design: "Modern Floating Icons",
-      status: "Active",
+      status: "Draft",
       settings: JSON.stringify({
         iconSize: "Medium",
         spacing: "Normal",
@@ -120,6 +120,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
         type,
         design,
         settings,
+        status: "Draft",
       },
     });
   } else {

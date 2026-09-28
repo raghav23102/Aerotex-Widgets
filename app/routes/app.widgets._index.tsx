@@ -95,7 +95,7 @@ export default function Widgets() {
         <IndexTable.Cell>{type}</IndexTable.Cell>
         <IndexTable.Cell>{design}</IndexTable.Cell>
         <IndexTable.Cell>
-          <Badge tone={status === "Active" ? "success" : "new"}>{status}</Badge>
+          <Badge tone={status === "Published" ? "success" : "new"}>{status}</Badge>
         </IndexTable.Cell>
         <IndexTable.Cell>
           <InlineStack gap="200" wrap={false}>
