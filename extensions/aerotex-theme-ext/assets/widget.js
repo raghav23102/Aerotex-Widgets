@@ -12,13 +12,34 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
     messenger: '<svg viewBox="0 0 24 24" fill="#00B2FF"><path d="M12 2C6.477 2 2 6.145 2 11.258c0 2.91 1.505 5.503 3.844 7.218V22l3.504-1.926c.846.234 1.737.36 2.652.36 5.522 0 10-4.145 10-9.258S17.522 2 12 2zm1.18 12.046l-2.548-2.723-4.966 2.723 5.45-5.786 2.6 2.723 4.908-2.723-5.444 5.786z"/></svg>',
   };
 
-  function renderWidget(container, widgetId, design, iconSize, spacing, position) {
+  async function fetchWidgetData(widgetId) {
+    try {
+      const response = await fetch(`${AppDomain}/api/widgets/${widgetId}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (e) {
+      console.error("Aerotex Widget Error:", e);
+      return null;
+    }
+  }
+
+  async function renderWidget(container, widgetId, design, iconSize, spacing, position) {
+    // Show a loading state or nothing while fetching
+    const widgetData = await fetchWidgetData(widgetId);
+    
+    // If widget not found or inactive, do not render
+    if (!widgetData || widgetData.status !== "Active") {
+      // Inside theme editor, we might still want to show a placeholder if it's invalid
+      if (window.Shopify && window.Shopify.designMode) {
+        container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget: Invalid ID or Inactive</div>`;
+      }
+      return;
+    }
+
     let sizePx = iconSize === 'Small' ? '24px' : iconSize === 'Large' ? '48px' : '36px';
     let gapPx = spacing === 'Compact' ? '8px' : spacing === 'Spacious' ? '16px' : '12px';
     let flexDir = position === 'Left Center' || design.includes('Social Bar') ? 'row' : 'column';
     
-    // For now, render mockup default icons directly to prove it works immediately in theme editor
-    // In production, we would `fetch(AppDomain + "/api/widgets/" + widgetId)` to get actual user links
     const widgetHtml = document.createElement('div');
     widgetHtml.style.display = 'flex';
     widgetHtml.style.flexDirection = flexDir;
@@ -50,8 +71,28 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       widgetHtml.style.bottom = '20px'; widgetHtml.style.right = '20px';
     }
 
-    ['whatsapp', 'instagram', 'facebook'].forEach(key => {
-      let iconWrapper = document.createElement('div');
+    const links = (widgetData.socialLinks || []).sort((a, b) => a.displayOrder - b.displayOrder);
+
+    if (links.length === 0 && window.Shopify && window.Shopify.designMode) {
+      widgetHtml.innerHTML = `<div style="font-size:12px;color:#666;">No active links</div>`;
+    }
+
+    links.forEach(link => {
+      if (!link.enabled) return;
+      let key = link.platform;
+      if (!ICONS[key]) return;
+
+      let href = link.url;
+      if (key === 'email' && !href.startsWith('mailto:')) href = `mailto:${href}`;
+      else if (key === 'phone' && !href.startsWith('tel:')) href = `tel:${href}`;
+      else if (key === 'whatsapp' && !href.startsWith('https://')) href = `https://wa.me/${href.replace(/[^0-9]/g, '')}`;
+      else if (!href.startsWith('http') && key !== 'email' && key !== 'phone' && key !== 'whatsapp') href = `https://${href}`;
+
+      let iconWrapper = document.createElement('a');
+      iconWrapper.href = href || "#";
+      iconWrapper.target = "_blank";
+      iconWrapper.rel = "noreferrer";
+      iconWrapper.style.display = 'block';
       iconWrapper.style.width = sizePx;
       iconWrapper.style.height = sizePx;
       iconWrapper.style.cursor = 'pointer';
@@ -62,6 +103,8 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       widgetHtml.appendChild(iconWrapper);
     });
 
+    // Clear any loading state before appending
+    container.innerHTML = '';
     container.appendChild(widgetHtml);
   }
 
