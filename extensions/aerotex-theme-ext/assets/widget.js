@@ -157,17 +157,31 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
   }
 
   async function renderWidget(container, widgetId) {
-    const widgetData = await fetchWidgetData(widgetId);
-    
-    if (!widgetData || !["Active", "Published", "Draft"].includes(widgetData.status)) {
-      if (window.Shopify && window.Shopify.designMode) {
-        container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget: Invalid ID or Inactive</div>`;
+    try {
+      const response = await fetch(`${AppDomain}/api/widgets/${widgetId}`);
+      if (!response.ok) {
+        if (window.Shopify && window.Shopify.designMode) {
+          container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget Error: API returned ${response.status} for ID '${widgetId}'</div>`;
+        }
+        return;
       }
-      return;
+      const widgetData = await response.json();
+      
+      if (!widgetData || !["Active", "Published", "Draft"].includes(widgetData.status)) {
+        if (window.Shopify && window.Shopify.designMode) {
+          const status = widgetData ? widgetData.status : "null";
+          container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget: Invalid Status '${status}' for ID '${widgetId}'</div>`;
+        }
+        return;
+      }
+      
+      container.innerHTML = '';
+      renderWidgetHtml(widgetData, container);
+    } catch (e) {
+      if (window.Shopify && window.Shopify.designMode) {
+        container.innerHTML = `<div style="padding:10px;background:#ffebee;color:#c62828;border-radius:4px;font-size:12px;">Aerotex Widget Error: Fetch failed (${e.message})</div>`;
+      }
     }
-    
-    container.innerHTML = '';
-    renderWidgetHtml(widgetData, container);
   }
 
   async function initGlobalWidgets(container) {
@@ -192,7 +206,8 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
     // Render specific block widgets
     const blocks = document.querySelectorAll('.aerotex-widget-block');
     blocks.forEach(block => {
-      const widgetId = block.getAttribute('data-widget-id');
+      const rawWidgetId = block.getAttribute('data-widget-id');
+      const widgetId = rawWidgetId ? rawWidgetId.trim() : null;
       const target = block.querySelector('.aerotex-render-target');
 
       if (widgetId && target) {
