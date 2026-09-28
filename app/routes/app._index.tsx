@@ -23,14 +23,19 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const publishedWidgets = await prisma.widget.count({ where: { shop: session.shop, status: "Published" } });
   const draftWidgets = await prisma.widget.count({ where: { shop: session.shop, status: "Draft" } });
 
-  const billingCheck = await billing.check({
-    plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
-    isTest: true,
-  });
-
-  const currentPlan = billingCheck.hasActivePayment
-    ? billingCheck.appSubscriptions[0].name
-    : "Free";
+  let currentPlan = "Free";
+  try {
+    const billingCheck = await billing.check({
+      plans: ["Starter Plan", "Pro Plan", "Premium Plan"],
+      isTest: true,
+    });
+    if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
+      currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
+    }
+  } catch (e) {
+    // Billing check failed gracefully — default to Free
+    currentPlan = "Free";
+  }
 
   return { stats: { totalWidgets, publishedWidgets, draftWidgets }, currentPlan };
 };
