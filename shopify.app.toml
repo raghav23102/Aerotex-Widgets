@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "c259da1bd79517554e6f2a370628d00c"
-application_url = "http://localhost:3000"
+client_id = "7290d404e5c68b7c7175f239741dc303"
+application_url = "https://aerotex-widgets.vercel.app"
 embedded = true
 name = "Aerotex Widgets"
 
@@ -12,6 +12,11 @@ scopes = "write_themes,read_themes,write_products,read_products"
 [webhooks]
 api_version = "2026-10"
 
+  [webhooks.privacy_compliance]
+  customer_deletion_url = "https://aerotex-widgets.vercel.app/webhooks"
+  customer_data_request_url = "https://aerotex-widgets.vercel.app/webhooks"
+  shop_deletion_url = "https://aerotex-widgets.vercel.app/webhooks"
+
   [[webhooks.subscriptions]]
   uri = "/webhooks/app/uninstalled"
   topics = [ "app/uninstalled" ]
@@ -21,7 +26,11 @@ api_version = "2026-10"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "http://localhost:3000/api/auth" ]
+redirect_urls = [
+  "https://aerotex-widgets.vercel.app/auth/callback",
+  "https://aerotex-widgets.vercel.app/auth/shopify/callback",
+  "https://aerotex-widgets.vercel.app/api/auth/callback"
+]
 
 [build]
 include_config_on_deploy = true
