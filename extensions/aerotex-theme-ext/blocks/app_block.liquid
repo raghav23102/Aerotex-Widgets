@@ -13,53 +13,11 @@
     },
     {
       "type": "header",
-      "content": "Design Settings"
+      "content": "Configuration Details"
     },
     {
-      "type": "select",
-      "id": "design",
-      "label": "Design Template",
-      "options": [
-        { "value": "Modern Floating Icons", "label": "Modern Floating Icons" },
-        { "value": "Minimal Social Bar", "label": "Minimal Social Bar" },
-        { "value": "Glass Social Bar", "label": "Glass Social Bar" },
-        { "value": "Bottom Sticky Social Bar", "label": "Bottom Sticky Social Bar" }
-      ],
-      "default": "Modern Floating Icons"
-    },
-    {
-      "type": "select",
-      "id": "icon_size",
-      "label": "Icon Size",
-      "options": [
-        { "value": "Small", "label": "Small" },
-        { "value": "Medium", "label": "Medium" },
-        { "value": "Large", "label": "Large" }
-      ],
-      "default": "Medium"
-    },
-    {
-      "type": "select",
-      "id": "spacing",
-      "label": "Spacing",
-      "options": [
-        { "value": "Compact", "label": "Compact" },
-        { "value": "Normal", "label": "Normal" },
-        { "value": "Spacious", "label": "Spacious" }
-      ],
-      "default": "Normal"
-    },
-    {
-      "type": "select",
-      "id": "position",
-      "label": "Desktop Position",
-      "options": [
-        { "value": "Bottom Right", "label": "Bottom Right" },
-        { "value": "Bottom Left", "label": "Bottom Left" },
-        { "value": "Top Right", "label": "Top Right" },
-        { "value": "Left Center", "label": "Left Center" }
-      ],
-      "default": "Bottom Right"
+      "type": "paragraph",
+      "content": "To change the Design, Position, Size, or Spacing of this widget, please go to the Aerotex Widgets App Dashboard. All features are managed there to sync with your plan."
     }
   ]
 }
@@ -67,11 +25,7 @@
 
 <div class="aerotex-widget-block" 
      data-widget-id="{{ block.settings.widget_id }}" 
-     data-shop="{{ shop.permanent_domain }}"
-     data-design="{{ block.settings.design }}"
-     data-icon-size="{{ block.settings.icon_size }}"
-     data-spacing="{{ block.settings.spacing }}"
-     data-position="{{ block.settings.position }}">
+     data-shop="{{ shop.permanent_domain }}">
   {% if block.settings.widget_id == blank %}
     <div style="padding: 20px; border: 2px dashed #ccc; text-align: center; border-radius: 8px;">
       <p style="margin: 0;"><strong>Aerotex Widget</strong></p>

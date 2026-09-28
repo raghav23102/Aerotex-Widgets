@@ -23,7 +23,7 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
     }
   }
 
-  async function renderWidget(container, widgetId, design, iconSize, spacing, position) {
+  async function renderWidget(container, widgetId) {
     // Show a loading state or nothing while fetching
     const widgetData = await fetchWidgetData(widgetId);
     
@@ -35,6 +35,18 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       }
       return;
     }
+
+    let parsedSettings = {};
+    try {
+      parsedSettings = JSON.parse(widgetData.settings || '{}');
+    } catch (e) {
+      console.error("Aerotex Widget settings parse error", e);
+    }
+
+    const design = widgetData.design || 'Modern Floating Icons';
+    const iconSize = parsedSettings.iconSize || 'Medium';
+    const spacing = parsedSettings.spacing || 'Normal';
+    const position = parsedSettings.position || 'Bottom Right';
 
     let sizePx = iconSize === 'Small' ? '24px' : iconSize === 'Large' ? '48px' : '36px';
     let gapPx = spacing === 'Compact' ? '8px' : spacing === 'Spacious' ? '16px' : '12px';
@@ -111,13 +123,6 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
       widgetHtml.style.bottom = '20px'; widgetHtml.style.right = '20px';
     }
 
-    let parsedSettings = {};
-    try {
-      parsedSettings = JSON.parse(widgetData.settings || '{}');
-    } catch (e) {
-      console.error("Aerotex Widget settings parse error", e);
-    }
-
     const socialLinks = parsedSettings.socialLinks || {};
     const contactLinks = parsedSettings.contactLinks || {};
     
@@ -169,17 +174,13 @@ console.log("Aerotex Widgets Theme Extension Loaded.");
     const blocks = document.querySelectorAll('.aerotex-widget-block');
     blocks.forEach(block => {
       const widgetId = block.getAttribute('data-widget-id');
-      const design = block.getAttribute('data-design');
-      const iconSize = block.getAttribute('data-icon-size');
-      const spacing = block.getAttribute('data-spacing');
-      const position = block.getAttribute('data-position');
       
       const target = block.querySelector('.aerotex-render-target');
 
       if (widgetId && target) {
         // Clear previous renders (useful inside theme editor)
         target.innerHTML = '';
-        renderWidget(target, widgetId, design, iconSize, spacing, position);
+        renderWidget(target, widgetId);
       }
     });
   }
