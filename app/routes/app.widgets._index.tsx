@@ -109,11 +109,7 @@ export default function Widgets() {
 
   return (
     <Page>
-      <TitleBar title="Widgets">
-        <button variant="primary" onClick={() => navigate("/app/widgets/new")}>
-          Create Widget
-        </button>
-      </TitleBar>
+      <TitleBar title="Widgets" />
       <Card padding="0">
         {widgets.length === 0 ? (
           emptyStateMarkup
