@@ -121,7 +121,7 @@ export default function Billing() {
     {
       name: "STARTER",
       id: MONTHLY_PLAN_STARTER,
-      price: "$2.99/month",
+      price: "$29.99/month",
       trialDays: 0,
       features: [
         "5 widget designs",
@@ -138,7 +138,7 @@ export default function Billing() {
     {
       name: "PRO",
       id: MONTHLY_PLAN_PRO,
-      price: "$5.99/month",
+      price: "$59.99/month",
       trialDays: 0,
       features: [
         "10 widget designs",
@@ -155,7 +155,7 @@ export default function Billing() {
     {
       name: "PREMIUM",
       id: MONTHLY_PLAN_PREMIUM,
-      price: "$9.99/month",
+      price: "$119.99/month",
       trialDays: 0,
       features: [
         "All available designs",
