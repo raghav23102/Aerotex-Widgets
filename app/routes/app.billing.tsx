@@ -28,7 +28,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     const billingCheck = await billing.check({
       plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
-      isTest: true,
+      isTest: false,
     });
     if (billingCheck?.hasActivePayment && billingCheck?.appSubscriptions?.length > 0) {
       currentPlan = billingCheck.appSubscriptions[0]?.name ?? "Free";
@@ -49,13 +49,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // To downgrade to free, we cancel the current subscription.
     const billingCheck = await billing.check({
       plans: [MONTHLY_PLAN_STARTER, MONTHLY_PLAN_PRO, MONTHLY_PLAN_PREMIUM],
-      isTest: true,
+      isTest: false,
     });
     
     if (billingCheck.hasActivePayment) {
       await billing.cancel({
         subscriptionId: billingCheck.appSubscriptions[0].id,
-        isTest: true,
+        isTest: false,
         prorate: true,
       });
     }
@@ -67,7 +67,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     await billing.request({
       plan: planName,
-      isTest: true,
+      isTest: false,
     });
   } catch (error) {
     if (error instanceof Response) {
